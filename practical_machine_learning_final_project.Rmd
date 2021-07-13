@@ -1,0 +1,87 @@
+---
+title: "Practical Machine Learning Final Project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+First we open the csv. 
+
+```{r echo=TRUE}
+training <- read.csv('/Users/ronthovsky09/Desktop/coursera/notes_r/practical_machine_learning/pml-training.csv', na.strings = c("NA","NaN","","#DIV/0!"))
+testing <-read.csv('/Users/ronthovsky09/Desktop/coursera/notes_r/practical_machine_learning/pml-testing.csv', na.strings = c("NA","NaN","","#DIV/0!"))
+head(data)
+```
+Looking at the data set, we must process the data. We must split the training set into training and test sets. 
+```{r echo=TRUE}
+library(caret)
+
+inTrain <- createDataPartition(training$classe, p=0.8, list=FALSE)
+train <- training[inTrain,]
+test <- testing[-inTrain,]
+```
+
+Next, we must exclude variables that has either no variances, or a lot of NAs. 
+
+```{r echo=TRUE}
+NZV <- nearZeroVar(train)
+train <- train[,-NZV]
+test <- test[,-NZV]
+
+is_na <- apply(train, 2, function (x) mean(is.na(x))) > .95
+train <- train[, -which(is_na, is_na==FALSE)]
+test<- test[, -which(is_na, is_na==FALSE)]
+
+train <- train[,-(1:5)]
+test <- test[,-(1:5)]
+```
+
+```{r echo =TRUE}
+#We have reduced the number of training variables from 160 to 54. 
+
+names(train)
+```
+
+Let's take at the correlation heat map
+
+```{r echo=TRUE}
+library(corrplot)
+corrMap<-cor(train[,-54])
+corrplot(corrMap, method = 'color', type ='lower', tl.cex = 0.8, tl.col = rgb(0,0,0))
+```
+Above shows the correlation heat map. The darker the color, the higher the correlation. Last, we will select the models used for the dataset. 
+
+```{r echo=TRUE}
+#Random Forest Tree
+
+fit_RF <- train(classe~., data=train, method='rf')
+fit_RF$finalModel
+
+predict_RF <- predict(fit_RF, test)
+#accuracy: 99%
+confusionMatrix(fit_RF, test$classe)
+
+```
+Generalized Boosted Model. 
+
+```{r echo=TRUE}
+library(caret)
+fit_gbm <- train(classe~., data=train, method='gbm')
+fit_gbm$finalModel
+
+predict_gbm <- predict(fit_gbm, test)
+#accuracy: 98.48%
+confusionMatrix(fit_gbm, test$classe)
+
+```
+
+Proceed with random forest model. 
+
+``` {r echo=TRUE}
+predict(fit_RF,testing)
+
+```
+
+
